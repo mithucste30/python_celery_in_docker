@@ -1,0 +1,39 @@
+version: '2'
+volumes:
+  rabbitmqdb:
+  redisdb:
+
+services:
+  app:
+    build: .
+    volumes:
+      - $PWD:/usr/src/app
+    links:
+      - rabbitmq:queue
+      - redis:redis
+    depends_on:
+      - rabbitmq
+      - redis
+      - flower
+
+  flower:
+    image: totem/celery-flower-docker
+    ports:
+      - 5555:5555
+    environment:
+      AMQP_HOST: rabbitmq
+    links:
+      - rabbitmq
+    depends_on:
+      - rabbitmq
+    command: /usr/local/bin/celery --loglevel="$LOG_LEVEL" --broker=amqp://guest:guest@rabbitmq:5672 flower
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    volumes:
+      - rabbitmqdb:/var/lib/rabbitmq
+
+  redis:
+    image: redis:3.2.9
+    volumes:
+      - redisdb:/data
